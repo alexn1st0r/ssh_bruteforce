@@ -13,7 +13,7 @@ static void *connect_worker(void *arg)
 		printf("Wrong argument for thread [%u]\n", tid);
 		goto exit;
 	}
-	//printf("%s, %s, %s, %d\n", btop->password, btop->host, btop->username, btop->port);
+	//printf("%s, %s, %s, %d\n", btop->password, btop->host, btop->username, btop->port); 
 
 	session = ssh_new();
 	if (!session) {
@@ -42,9 +42,7 @@ static void *connect_worker(void *arg)
 free_ssh:
 	ssh_free(session);
 exit:
-	pi_futex_wait(btop->futex_complete_password);
-	(*btop->completed)++;
-	pi_futex_wake(btop->futex_complete_password);
+	pi_futex_wake_many(btop->completed, btop->count); //(*btop->completed)++;
 
 	pthread_exit(NULL);
 }
@@ -55,7 +53,7 @@ void *user_connection_thread(void *arg)
 	struct ssh_brute_options *btop; 
 	pthread_t *threads;
 	int err = -1, tidx = 0, i;
-	size_t completed_password = 0;
+	int completed_password = 0;
 	char result[4096] = { 0 };
 
 	if (!uo) {
@@ -85,6 +83,7 @@ void *user_connection_thread(void *arg)
 		btop[tidx].result = (char*)&result;
 		btop[tidx].futex_result = uo->futex_result;
 		btop[tidx].futex_complete_password = uo->futex_complete_password;
+		btop[tidx].count = uo->pcount;
 
 		err = pthread_create(&threads[tidx], 0, connect_worker, (void*)&btop[tidx]);
 		if (err < 0) {
@@ -94,10 +93,7 @@ void *user_connection_thread(void *arg)
 	}
 
 	err = 0;
-	while (completed_password != uo->pcount) {
-		//printf("sleep [%d] [%d]\n", completed, pcount);
-		usleep(1000);
-	}
+	pi_futex_wait_many(&completed_password, uo->pcount);
 join_threads:
 	while (tidx) {
 		pthread_join(threads[--tidx], NULL);
@@ -112,8 +108,6 @@ join_threads:
 free_threads:
 	free(threads);
 exit:
-	pi_futex_wait(uo->futex_complete_users);
-	(*uo->completed)++;
-	pi_futex_wake(uo->futex_complete_users);
+	pi_futex_wake_many(uo->completed, uo->ucount);
 	return NULL;
 }

@@ -13,5 +13,7 @@
 
 void pi_futex_wait(int *futexp);
 void pi_futex_wake(int *futexp);
+void pi_futex_wait_many(int *futexp, int count);
+void pi_futex_wake_many(int *futexp, int count);
 
 #endif /* __FUTEX_H__ */

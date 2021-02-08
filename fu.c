@@ -31,13 +31,13 @@ static void users_and_passwords_parallel(void)
 		"user",
 		"admin"
 	};
-	size_t users_count = 4;
+	int users_count = 4;
 
 	int err = 0, tidx = 0;
 	clock_t start, end;
 	double cpu_time_used;
 	struct ssh_username_options uo[users_count]; 
-	size_t completed_users = 0;
+	int completed_users = 0;
 
 	pthread_t *threads;
 
@@ -58,8 +58,7 @@ static void users_and_passwords_parallel(void)
 		uo[tidx].username = users[tidx];
 		uo[tidx].completed = &completed_users;
 		uo[tidx].futex_result = &futex_result;
-		uo[tidx].futex_complete_password = &futex_complete_password;
-		uo[tidx].futex_complete_users = &futex_complete_users;
+		uo[tidx].ucount = users_count;
 
 		err = pthread_create(&threads[tidx], 0, user_connection_thread, (void*)&uo[tidx]);
 		if (err < 0) {
@@ -68,10 +67,7 @@ static void users_and_passwords_parallel(void)
 		}
 	}
 
-	while (completed_users != users_count) {
-		//printf("sleep [%d] [%d]\n", completed, pcount);
-		usleep(1000);
-	}
+	pi_futex_wait_many(&completed_users,  users_count);
 
 join_threads:
 	while (tidx) {
@@ -93,7 +89,7 @@ static void only_passwords_parallel(void)
 		"qwerty123",
 		"dog777"
 	};
-	size_t passwords_count = 5;
+	int passwords_count = 5;
 
 	char *users[] = {
 		"root",
@@ -103,7 +99,7 @@ static void only_passwords_parallel(void)
 	};
 	size_t users_count = 4;
 
-	size_t completed = 0;
+	int completed = 0;
 
 	struct ssh_username_options uo = {
 		.host = "192.168.122.190",
@@ -113,8 +109,6 @@ static void only_passwords_parallel(void)
 		.pcount = passwords_count,
 		.completed = &completed,
 		.futex_result = &futex_result,
-		.futex_complete_password = &futex_complete_password,
-		.futex_complete_users = &futex_complete_users,
 	};
 
 	clock_t start, end;

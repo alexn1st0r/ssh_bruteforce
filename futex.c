@@ -34,3 +34,35 @@ void pi_futex_wake(int *futexp)
 		}
 	}
 }
+
+void pi_futex_wait_many(int *futexp, int count)
+{
+	int s;
+
+	while (1) {
+		if (__sync_bool_compare_and_swap(futexp, count, count)) {
+			break;
+		}
+
+		s = futex(futexp, FUTEX_WAIT, count, NULL, NULL, 0);
+		if (s == -1 && errno != EAGAIN) {
+			perror("futex wait");
+			exit(1);
+		}
+	}
+}
+
+void pi_futex_wake_many(int *futexp, int count)
+{
+	int s;
+
+	//printf("[%s] val [%u]\n", __func__, __sync_add_and_fetch(futexp, 1));
+	__sync_add_and_fetch(futexp, 1);
+	if (__sync_bool_compare_and_swap(futexp, count, count)) {
+		s = futex(futexp, FUTEX_WAKE, 1, NULL, NULL, 0);
+		if (s == -1 && errno != EAGAIN) {
+			perror("futex wait");
+			exit(1);
+		}
+	}
+}
