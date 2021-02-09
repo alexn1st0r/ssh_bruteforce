@@ -19,7 +19,6 @@ struct ssh_brute_options {
 	int *completed;
 	char *result;
 	int *futex_result;
-	int *futex_complete_password;
 };
 
 struct ssh_username_options {
@@ -28,11 +27,8 @@ struct ssh_username_options {
 	int port;
 	char **passwords;
 	int pcount;
-	int ucount;
 	int *completed;
 	int *futex_result;
-	int *futex_complete_password;
-	int *futex_complete_users;
 };
 
 void *user_connection_thread(void *arg);

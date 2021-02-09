@@ -42,7 +42,7 @@ static void *connect_worker(void *arg)
 free_ssh:
 	ssh_free(session);
 exit:
-	pi_futex_wake_many(btop->completed, btop->count); //(*btop->completed)++;
+	pi_futex_wake_many(btop->completed, btop->count);
 
 	pthread_exit(NULL);
 }
@@ -82,7 +82,6 @@ void *user_connection_thread(void *arg)
 		btop[tidx].completed = &completed_password;
 		btop[tidx].result = (char*)&result;
 		btop[tidx].futex_result = uo->futex_result;
-		btop[tidx].futex_complete_password = uo->futex_complete_password;
 		btop[tidx].count = uo->pcount;
 
 		err = pthread_create(&threads[tidx], 0, connect_worker, (void*)&btop[tidx]);
@@ -108,6 +107,5 @@ join_threads:
 free_threads:
 	free(threads);
 exit:
-	pi_futex_wake_many(uo->completed, uo->ucount);
 	return NULL;
 }
